@@ -90,6 +90,14 @@ def opt_input_dir(function):
     )(function)
     return function
 
+def opt_artifact_location(function):
+    function = click.option("--artifact-location",
+        help="The location to store run artifacts",
+        type=str,
+        required=False
+    )(function)
+    return function
+
 def opt_import_source_tags(function):
     function = click.option("--import-source-tags",
         help="Import source information for registered model and its versions ad tags in destination object.",

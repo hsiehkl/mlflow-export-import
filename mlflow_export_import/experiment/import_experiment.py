@@ -11,7 +11,8 @@ from mlflow_export_import.common.click_options import (
     opt_input_dir,
     opt_import_source_tags,
     opt_use_src_user_id,
-    opt_dst_notebook_dir
+    opt_dst_notebook_dir,
+    opt_artifact_location
 )
 from mlflow_export_import.client.http_client import DatabricksHttpClient
 from mlflow_export_import.common import utils, mlflow_utils, io_utils
@@ -31,7 +32,8 @@ def import_experiment(
         import_source_tags = False,
         use_src_user_id = False,
         dst_notebook_dir = None,
-        mlflow_client = None
+        mlflow_client = None,
+        artifact_location=None
     ):
     """
     :param: experiment_name: Destination experiment name.
@@ -50,7 +52,8 @@ def import_experiment(
     return importer.import_experiment(
         experiment_name = experiment_name,
         input_dir = input_dir,
-        dst_notebook_dir = dst_notebook_dir
+        dst_notebook_dir = dst_notebook_dir,
+        artifact_location=artifact_location
     )
 
 
@@ -76,7 +79,8 @@ class ExperimentImporter():
     def import_experiment(self,
             experiment_name,
             input_dir,
-            dst_notebook_dir = None
+            dst_notebook_dir = None,
+            artifact_location=None
         ):
         """
         :param: experiment_name: Destination experiment name.
@@ -97,7 +101,7 @@ class ExperimentImporter():
             set_source_tags_for_field(exp, tags)
             fmt_timestamps("creation_time", exp, tags)
             fmt_timestamps("last_update_time", exp, tags)
-        mlflow_utils.set_experiment(self.mlflow_client, self.dbx_client, experiment_name, tags)
+        mlflow_utils.set_experiment(self.mlflow_client, self.dbx_client, experiment_name, tags, artifact_location)
 
         run_ids = exp_dct["runs"]
         failed_run_ids = info["failed_runs"]
@@ -131,6 +135,7 @@ class ExperimentImporter():
 @opt_import_source_tags
 @opt_use_src_user_id
 @opt_dst_notebook_dir
+@opt_artifact_location
 
 def main(input_dir, experiment_name, import_source_tags, use_src_user_id, dst_notebook_dir):
     _logger.info("Options:")
@@ -141,7 +146,8 @@ def main(input_dir, experiment_name, import_source_tags, use_src_user_id, dst_no
         input_dir = input_dir,
         import_source_tags = import_source_tags,
         use_src_user_id = use_src_user_id,
-        dst_notebook_dir = dst_notebook_dir
+        dst_notebook_dir = dst_notebook_dir,
+        artifact_location=artifact_location
     )
 
 

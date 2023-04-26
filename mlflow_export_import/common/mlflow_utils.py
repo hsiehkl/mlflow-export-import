@@ -18,7 +18,7 @@ def get_experiment(mlflow_client, exp_id_or_name):
     return exp
 
 
-def set_experiment(mlflow_client, dbx_client, exp_name, tags=None):
+def set_experiment(mlflow_client, dbx_client, exp_name, tags=None, artifact_location=None):
     """
     Set experiment name. 
     For Databricks, create the workspace directory if it doesn't exist.
@@ -29,7 +29,7 @@ def set_experiment(mlflow_client, dbx_client, exp_name, tags=None):
     try:
         if not tags: tags = {}
         tags = utils.create_mlflow_tags_for_databricks_import(tags)
-        exp_id = mlflow_client.create_experiment(exp_name, tags=tags)
+        exp_id = mlflow_client.create_experiment(exp_name, tags=tags, artifact_location=artifact_location)
         exp = mlflow_client.get_experiment(exp_id)
         _logger.info(f"Created experiment '{exp.name}' with location '{exp.artifact_location}'")
     except RestException as ex:
