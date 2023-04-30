@@ -19,6 +19,7 @@ from mlflow_export_import.common import utils, io_utils, mlflow_utils
 from mlflow_export_import.common import permissions_utils
 from mlflow_export_import.common.timestamp_utils import fmt_ts_millis, utc_str_to_millis
 from mlflow_export_import.run.export_run import export_run
+from mlflow_export_import.common.filesystem import get_filesystem
 
 _logger = utils.getLogger(__name__)
 
@@ -95,6 +96,7 @@ class ExperimentExporter():
         ok_run_ids = []
         failed_run_ids = []
         num_runs_exported = 0
+        fs = get_filesystem(output_dir)
         if run_ids:
             for j,run_id in enumerate(run_ids):
                 run = self.mlflow_client.get_run(run_id)

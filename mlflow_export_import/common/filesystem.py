@@ -25,6 +25,9 @@ class DatabricksFileSystem():
     def cp(self, src, dst, recursive=False):
         self.dbutils.fs.cp(mk_dbfs_path(src), mk_dbfs_path(dst), recursive)
 
+    def mv(self, src, dst, recursive=False):
+        self.dbutils.fs.mv(mk_dbfs_path(src), mk_dbfs_path(dst), recursive)
+
     def rm(self, path, recurse=False):
         self.dbutils.fs.rm(mk_dbfs_path(path), recurse)
 
@@ -42,6 +45,9 @@ class LocalFileSystem():
     def cp(self, src, dst, recurse=False):
         shutil.copytree(mk_local_path(src), mk_local_path(dst))
 
+    def mv(self, src, dst, recurse=False):
+        shutil.move(mk_local_path(src), mk_local_path(dst))
+
     def rm(self, path, recurse=False):
         shutil.rmtree(mk_local_path(path))
 
@@ -55,4 +61,4 @@ class LocalFileSystem():
 
 def get_filesystem(dir):
     """ Return the filesystem object matching the directory path. """
-    return DatabricksFileSystem() if dir.startswith("dbfs:") else LocalFileSystem()
+    return DatabricksFileSystem() if (dir.startswith("dbfs:") or dir.startswith("s3:")) else LocalFileSystem()

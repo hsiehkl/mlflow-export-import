@@ -97,8 +97,9 @@ class RunExporter:
             "metrics": self._get_metrics_with_steps(run),
             "tags": tags
         }
+        _logger.info(f"output_dir: {output_dir}")
         io_utils.write_export_file(output_dir, "run.json", __file__, mlflow_attr)
-        fs =  _filesystem.get_filesystem(".")
+        fs =  _filesystem.get_filesystem(output_dir)
 
         # copy artifacts
         dst_path = os.path.join(output_dir, "artifacts")
@@ -106,11 +107,21 @@ class RunExporter:
             artifacts = self.mlflow_client.list_artifacts(run.info.run_id)
             if len(artifacts) > 0: # Because of https://github.com/mlflow/mlflow/issues/2839
                 fs.mkdirs(dst_path)
-                mlflow.artifacts.download_artifacts(
-                   run_id = run.info.run_id, 
-                   artifact_path = "", 
-                   dst_path = _filesystem.mk_local_path(dst_path), 
-                   tracking_uri = self.mlflow_client._tracking_client.tracking_uri)
+                if dst_path.startswith("s3:/"):
+                    tmp_dst_path = dst_path.replace("s3://", "/dbfs/temp/")
+                    mlflow.artifacts.download_artifacts(
+                        run_id = run.info.run_id, 
+                        artifact_path = "", 
+                        dst_path = _filesystem.mk_local_path(tmp_dst_path), 
+                        tracking_uri = self.mlflow_client._tracking_client.tracking_uri)
+                    fs.mv(tmp_dst_path, dst_path, recursive=True)
+                    # fs.rm(tmp_dst_path, recurse=True)
+                else:
+                    mlflow.artifacts.download_artifacts(
+                        run_id = run.info.run_id, 
+                        artifact_path = "", 
+                        dst_path = _filesystem.mk_local_path(dst_path), 
+                        tracking_uri = self.mlflow_client._tracking_client.tracking_uri)
             notebook = tags.get(MLFLOW_DATABRICKS_NOTEBOOK_PATH, None)
             if notebook is not None:
                 if len(self.notebook_formats) > 0:

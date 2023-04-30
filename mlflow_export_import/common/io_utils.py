@@ -45,11 +45,12 @@ def write_export_file(dir, file, script, mlflow_attr, info_attr=None):
     Write standard formatted JSON file.
     """
     dir = _filesystem.mk_local_path(dir)
+    fs = _filesystem.get_filesystem(dir)
     path = os.path.join(dir, file)
     info_attr = { ExportFields.INFO: info_attr} if info_attr else {}
     mlflow_attr = { ExportFields.MLFLOW: mlflow_attr}
     mlflow_attr = { **_mk_system_attr(script), **info_attr, **mlflow_attr }
-    os.makedirs(dir, exist_ok=True)
+    fs.mkdirs(dir)
     write_file(path, mlflow_attr)
 
 
@@ -62,21 +63,20 @@ def write_file(path, content, file_type=None):
     Write to JSON, YAML or text file.
     """
     path = _filesystem.mk_local_path(path)
+    fs = _filesystem.get_filesystem(path)
     if path.endswith(".json"):
-        with open(path, "w", encoding="utf-8") as f:
-            f.write(json.dumps(content, indent=2)+"\n")
+        fs.write(path, json.dumps(content, indent=2)+"\n")
     elif _is_yaml(path, file_type):
-        with open(path, "w", encoding="utf-8") as f:
-            yaml.dump(content, f)
+        fs.write(path, yaml.dumps(content))
     else:
-        with open(path, "wb" ) as f:
-            f.write(content)
+        fs.write(path, content)
 
 
 def read_file(path, file_type=None):
     """
     Read a JSON, YAML or text file.
     """
+    fs = _filesystem.get_filesystem(path)
     with open(_filesystem.mk_local_path(path), "r", encoding="utf-8") as f:
         if path.endswith(".json"):
             return json.loads(f.read())
