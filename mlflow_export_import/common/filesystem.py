@@ -36,6 +36,9 @@ class DatabricksFileSystem():
 
     def write(self, path, content):
         self.dbutils.fs.put(mk_dbfs_path(path), content, True)
+
+    def exists(self, path):
+        return len(self.ls(path)) > 0
             
 
 class LocalFileSystem():
@@ -58,6 +61,8 @@ class LocalFileSystem():
         with open(mk_local_path(path), "w", encoding="utf-8") as f:
             f.write(content)
 
+    def exists(self, path):
+        return os.path.exists(path)
 
 def get_filesystem(dir):
     """ Return the filesystem object matching the directory path. """
