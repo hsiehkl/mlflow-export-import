@@ -67,7 +67,7 @@ def write_file(path, content, file_type=None):
     if path.endswith(".json"):
         fs.write(path, json.dumps(content, indent=2)+"\n")
     elif _is_yaml(path, file_type):
-        fs.write(path, yaml.dumps(content))
+        fs.write(path, yaml.dump(content))
     else:
         fs.write(path, content)
 
@@ -77,13 +77,13 @@ def read_file(path, file_type=None):
     Read a JSON, YAML or text file.
     """
     fs = _filesystem.get_filesystem(path)
-    with open(_filesystem.mk_local_path(path), "r", encoding="utf-8") as f:
-        if path.endswith(".json"):
-            return json.loads(f.read())
-        elif _is_yaml(path, file_type):
-            return yaml.safe_load(f)
-        else:
-            return f.read()
+    contents = fs.read(path)
+    if path.endswith(".json"):
+        return json.loads(contents)
+    elif _is_yaml(path, file_type):
+        return yaml.safe_load(contents)
+    else:
+        return contents
 
 
 def get_info(export_dct):

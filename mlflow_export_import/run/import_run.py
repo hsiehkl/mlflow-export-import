@@ -20,7 +20,7 @@ from mlflow_export_import.common.click_options import (
     opt_dst_notebook_dir
 )
 from mlflow_export_import.common import utils, mlflow_utils, io_utils
-from mlflow_export_import.common.filesystem import mk_local_path
+from mlflow_export_import.common.filesystem import EmptyExperimentPathException, mk_local_path
 from mlflow_export_import.common.find_artifacts import find_artifacts
 from mlflow_export_import.common import filesystem as _filesystem
 from mlflow_export_import.common import MlflowExportImportException
@@ -121,13 +121,15 @@ class RunImporter():
 
     def _import_run(self, dst_exp_name, input_dir, dst_notebook_dir):
         exp_id = mlflow_utils.set_experiment(self.mlflow_client, self.dbx_client, dst_exp_name)
+        _logger.info(f"Importing run into experiment OUR CUSTOM LOGS RUNNING")
         exp = self.mlflow_client.get_experiment(exp_id)
         src_run_path = os.path.join(input_dir,"run.json")
         src_run_dct = io_utils.read_file_mlflow(src_run_path)
-
+        fs = _filesystem.DatabricksFileSystem()
         run = self.mlflow_client.create_run(exp.experiment_id)
         run_id = run.info.run_id
         try:
+            _logger.info("Importing run data")
             run_data_importer.import_run_data(
                 self.mlflow_client,
                 src_run_dct,
@@ -138,15 +140,25 @@ class RunImporter():
                 self.in_databricks
             )
             path = os.path.join(input_dir, "artifacts")
-            if os.path.exists(_filesystem.mk_local_path(path)):
-                self.mlflow_client.log_artifacts(run_id, mk_local_path(path))
-            if self.mlmodel_fix:
-                self._update_mlmodel_run_id(run_id)
+            with fs.move_artifacts(path) as path_name:
+                _logger.info("Importing run artifacts")
+                _logger.info(mk_local_path(path))
+                _logger.info(mk_local_path(path_name))
+                _logger.info(f"is model_fix: {self.mlmodel_fix}")
+                if self.mlmodel_fix:
+                    _logger.info("Fixing MLmodel")
+                    self._update_mlmodel_run_id(run_id)
+                if os.path.exists(mk_local_path(path_name)):
+                    _logger.info("Logging artifacts")
+                    self.mlflow_client.log_artifacts(run_id, mk_local_path(path_name))
+            _logger.info("Setting run status to FINISHED")
             self.mlflow_client.set_terminated(run_id, RunStatus.to_string(RunStatus.FINISHED))
             run = self.mlflow_client.get_run(run_id)
             if src_run_dct["info"]["lifecycle_stage"] == LifecycleStage.DELETED:
                 self.mlflow_client.delete_run(run.info.run_id)
                 run = self.mlflow_client.get_run(run.info.run_id)
+        except EmptyExperimentPathException as e:
+            self.mlflow_client.set_terminated(run_id, RunStatus.to_string(RunStatus.FAILED))
         except Exception as e:
             self.mlflow_client.set_terminated(run_id, RunStatus.to_string(RunStatus.FAILED))
             import traceback
@@ -169,7 +181,12 @@ class RunImporter():
         """
 
         mlmodel_paths = find_artifacts(run_id, "", "MLmodel")
+        _logger.info(f"FINDING ARTIFACTS {mlmodel_paths} for {run_id}")
         for mlmodel_path in mlmodel_paths:
+            _logger.info("---------------------------------------")
+            _logger.info("UPDATING ML MODEL AND LOGGING ARTIFACT")
+            _logger.info("{mlmodel_path}")
+            _logger.info("---------------------------------------")
             model_path = mlmodel_path.replace("/MLmodel","")
             previous_tracking_uri = mlflow.get_tracking_uri()
             mlflow.set_tracking_uri(self.mlflow_client._tracking_client.tracking_uri)
@@ -177,8 +194,12 @@ class RunImporter():
                 run_id = run_id,
                 artifact_path = mlmodel_path)
             mlflow.set_tracking_uri(previous_tracking_uri)
+            _logger.info("---------------------------------------")
+            _logger.info(f"{local_path} -- local path")
+            _logger.info("---------------------------------------")
             mlmodel = io_utils.read_file(local_path, "yaml")
             mlmodel["run_id"] = run_id
+            mlmodel["artifact_path"] = f"artifacts/{mlmodel['artifact_path']}"
             with tempfile.TemporaryDirectory() as dir:
                 output_path = os.path.join(dir, "MLmodel")
                 io_utils.write_file(output_path, mlmodel, "yaml")

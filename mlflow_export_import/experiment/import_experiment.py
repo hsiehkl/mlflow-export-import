@@ -104,6 +104,7 @@ class ExperimentImporter():
         mlflow_utils.set_experiment(self.mlflow_client, self.dbx_client, experiment_name, tags, artifact_location)
 
         run_ids = exp_dct["runs"]
+        run_ids.reverse()
         failed_run_ids = info["failed_runs"]
 
         _logger.info(f"Importing {len(run_ids)} runs into experiment '{experiment_name}' from '{input_dir}'")
@@ -137,7 +138,7 @@ class ExperimentImporter():
 @opt_dst_notebook_dir
 @opt_artifact_location
 
-def main(input_dir, experiment_name, import_source_tags, use_src_user_id, dst_notebook_dir):
+def main(input_dir, experiment_name, import_source_tags, use_src_user_id, dst_notebook_dir, artifact_location):
     _logger.info("Options:")
     for k,v in locals().items():
         _logger.info(f"  {k}: {v}")
