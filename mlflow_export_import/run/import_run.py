@@ -154,8 +154,9 @@ class RunImporter():
                         self.mlflow_client.log_artifacts(run_id, mk_local_path(path_name))
             else:
                 _logger.info("No MLmodel found. Skip logging artifacts.")
-            _logger.info("Setting run status to FINISHED")
-            self.mlflow_client.set_terminated(run_id, RunStatus.to_string(RunStatus.FINISHED))
+            previous_status = src_run_dct["info"]["status"]
+            _logger.info(f"Setting run status to what it previously was: {previous_status}")
+            self.mlflow_client.set_terminated(run_id, previous_status)
             run = self.mlflow_client.get_run(run_id)
             if src_run_dct["info"]["lifecycle_stage"] == LifecycleStage.DELETED:
                 self.mlflow_client.delete_run(run.info.run_id)
