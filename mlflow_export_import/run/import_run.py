@@ -140,17 +140,20 @@ class RunImporter():
                 self.in_databricks
             )
             path = os.path.join(input_dir, "artifacts")
-            with fs.move_artifacts(path) as path_name:
-                _logger.info("Importing run artifacts")
-                _logger.info(mk_local_path(path))
-                _logger.info(mk_local_path(path_name))
-                _logger.info(f"is model_fix: {self.mlmodel_fix}")
-                if self.mlmodel_fix:
-                    _logger.info("Fixing MLmodel")
-                    self._update_mlmodel_run_id(run_id)
-                if os.path.exists(mk_local_path(path_name)):
-                    _logger.info("Logging artifacts")
-                    self.mlflow_client.log_artifacts(run_id, mk_local_path(path_name))
+            if find_artifacts(run_id, "", "MLmodel"):
+                with fs.move_artifacts(path) as path_name:
+                    _logger.info("Importing run artifacts")
+                    _logger.info(mk_local_path(path))
+                    _logger.info(mk_local_path(path_name))
+                    _logger.info(f"is model_fix: {self.mlmodel_fix}")
+                    if self.mlmodel_fix:
+                        _logger.info("Fixing MLmodel")
+                        self._update_mlmodel_run_id(run_id)
+                    if os.path.exists(mk_local_path(path_name)):
+                        _logger.info("Logging artifacts")
+                        self.mlflow_client.log_artifacts(run_id, mk_local_path(path_name))
+            else:
+                _logger.info("No MLmodel found. Skip logging artifacts.")
             _logger.info("Setting run status to FINISHED")
             self.mlflow_client.set_terminated(run_id, RunStatus.to_string(RunStatus.FINISHED))
             run = self.mlflow_client.get_run(run_id)
